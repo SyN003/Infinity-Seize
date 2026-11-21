@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Infinity Siege</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--pn:#151b33;--ln:#2a3358;--gem:#a78bfa;--gold:#f5c542;--tx:#e8ecff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:600 16px Rajdhani,'Segoe UI',sans-serif;user-select:none;touch-action:manipulation}
+button,input,select{font:inherit;color:inherit;background:var(--pn);border:2px solid var(--ln);border-radius:8px;padding:8px 12px}
+button{cursor:pointer}button:hover{border-color:var(--gem)}button:focus-visible,input:focus-visible{outline:3px solid var(--gold)}
+button:disabled{opacity:.4}
+.c{max-width:420px;margin:12vh auto;padding:20px;display:grid;gap:14px;text-align:center}
+h1{font-size:44px;margin:0;color:var(--gem);letter-spacing:1px}#er{color:#f87171;min-height:1em;margin:0}
+#main{max-width:900px;margin:auto;padding:8px;position:relative}
+#top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+#use{background:var(--gold);color:#111;font-weight:700}
+#bars{display:grid;grid-template-columns:auto 120px;gap:2px 6px;font-size:13px;align-items:center}
+i.b{display:block;height:10px;background:#0006;border-radius:5px;overflow:hidden}i.b b{display:block;height:100%;background:var(--gem)}
+#hpb{background:#ef4444}#stb{background:#22c55e}
+canvas{width:100%;display:block;border:2px solid var(--ln);border-radius:8px;background:#000}
+#pad{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+#dp{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:4px}
+#dp button,#ac button{padding:0;font-size:22px}#ac{display:flex;gap:8px}#ac button{width:76px;height:76px;font-size:15px}
+#lob{margin-top:10px;background:var(--pn);border:2px solid var(--ln);border-radius:10px;padding:12px;display:grid;gap:10px}
+.pl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dot{width:16px;height:16px;border-radius:50%;border:2px solid #fff8;display:inline-block}
+#cols button{width:30px;height:30px;padding:0;border-radius:50%}
+#hg{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px;max-height:190px;overflow:auto}
+#hg button{padding:4px;font-size:13px;text-align:left}
+.card{border:2px solid var(--gem);border-radius:10px;padding:10px;background:#0b1020;display:grid;gap:3px}
+.card h3{margin:0;font-size:22px}.row{display:grid;grid-template-columns:130px 1fr 30px;gap:6px;align-items:center;font-size:14px}
+#info{font-size:20px;color:var(--gold);text-align:center;flex:1}
+</style></head><body>
+<div id="home" class="c">
+ <h1>💎 Infinity Siege</h1>
+ <input id="nm" placeholder="Your game name" maxlength="12">
+ <div><label>Players in match <select id="np"><option>2<option>3<option>4<option>5<option>6</select></label>
+  <button onclick="mk()">Create lobby</button></div>
+ <div><input id="cd" placeholder="6-character code" maxlength="6" style="text-transform:uppercase;width:170px"> <button onclick="jn()">Join lobby</button></div>
+ <p id="er"></p>
+</div>
+<div id="main" hidden>
+ <div id="top"><button id="use">USE</button><div id="info"></div>
+  <div id="bars"><span>HP</span><i class="b"><b id="hpb"></b></i><span>Stamina</span><i class="b"><b id="stb"></b></i></div></div>
+ <canvas id="cv" width="800" height="640"></canvas>
+ <div id="pad" hidden>
+  <div id="dp"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><span></span><button data-d="1,0">▶</button><span></span><button data-d="0,1">▼</button></div>
+  <div id="ac"><button data-a="atk">Attack<br>(Z)</button><button data-a="dg">Dodge<br>(X)</button><button data-a="df">Defend<br>(C)</button></div>
+ </div>
+ <div id="lob"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL='https://wybbxotextdqbrmbhytx.supabase.co',SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YmJ4b3RleHRkcWJybWJoeXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyODQ4ODQsImV4cCI6MjExMDg2MDg4NH0.pf0vR_GibCaRxsyvmaR3Zvk0Q9Ft1vvxu1iSJT2sU-8';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const H=`Iron Man|Marvel|Repulsor Blasts|60,10,60,100,60
+Captain America|Marvel|Vibranium Shield|75,0,65,60,85
+Thor|Marvel|Lightning Storm|90,90,70,30,90
+Hulk|Marvel|Gamma Smash|100,0,50,10,100
+Black Widow|Marvel|Stealth Strike|65,0,75,70,60
+Spider-Man|Marvel|Web Swing|70,0,90,70,75
+Doctor Strange|Marvel|Mystic Arts|30,100,50,60,50
+Black Panther|Marvel|Kinetic Claws|80,0,85,80,75
+Scarlet Witch|Marvel|Chaos Magic|40,100,50,20,60
+Hawkeye|Marvel|Sharpshooter|55,0,60,80,55
+Ant-Man|Marvel|Size Shift|55,0,65,85,55
+Captain Marvel|Marvel|Photon Blast|85,70,85,40,90
+Superman|DC|Heat Vision|100,20,95,30,100
+Batman|DC|Gadget Arsenal|75,0,60,100,60
+Wonder Woman|DC|Lasso of Truth|90,60,80,30,85
+The Flash|DC|Speed Force|60,30,100,30,70
+Green Lantern|DC|Power Ring|50,80,70,70,65
+Aquaman|DC|Trident Surge|85,40,65,30,85
+Cyborg|DC|Sonic Cannon|75,10,60,95,75
+Shazam|DC|Wizard Lightning|90,80,75,10,85
+Wolverine|X-Men|Adamantium Claws|80,0,70,30,95
+Storm|X-Men|Weather Control|40,90,70,10,60
+Cyclops|X-Men|Optic Blast|50,40,60,80,55
+Jean Grey|X-Men|Telekinesis|30,100,60,20,60
+Magneto|X-Men|Magnetism|60,90,60,50,70
+Beast|X-Men|Genius Agility|70,0,80,95,70
+Rogue|X-Men|Power Absorb|85,20,80,20,80
+Mr. Fantastic|Fantastic Four|Elastic Body|60,0,60,95,70
+Invisible Woman|Fantastic Four|Force Fields|40,70,60,50,60
+Human Torch|Fantastic Four|Flame On|55,60,80,40,60
+The Thing|Fantastic Four|Rock Fists|95,0,40,20,100
+Naruto|Naruto|Rasengan|75,80,80,30,100
+Sasuke|Naruto|Chidori|75,80,85,40,75
+Kakashi|Naruto|Sharingan|65,80,80,70,65
+Itachi|Naruto|Tsukuyomi|60,100,85,60,60
+Rock Lee|Naruto|Eight Gates|90,0,95,30,85
+Gaara|Naruto|Sand Control|55,85,50,40,80
+Jiraiya|Naruto|Toad Sage Mode|70,85,60,50,75
+Goku|Dragon Ball Z|Kamehameha|100,70,95,20,100
+Vegeta|Dragon Ball Z|Galick Gun|95,70,90,40,90
+Gohan|Dragon Ball Z|Masenko|90,70,85,30,90
+Piccolo|Dragon Ball Z|Special Beam Cannon|80,60,70,60,85
+Trunks|Dragon Ball Z|Sword Slash|85,60,85,50,80
+Frieza|Dragon Ball Z|Death Beam|90,60,90,50,85`.split('\n').map((l,i)=>{const[n,u,p,s]=l.split('|'),v=s.split(',').map(Number);return{i,n,u,p,s:v,r:v[1]>=90||v[3]>=95}});
+const ST=['Physical Power','Magical Power','Speed','Technical Power','Strength & Stamina'];
+const COL=['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899','#ffffff','#14b8a6','#a3e635','#78350f'];
+const W=20,G=16,C=40,$=id=>document.getElementById(id);
+const hm=(x,y)=>x<7&&y>=11, sf=(x,y)=>x>=15&&y<5;
+let ch,host=false,S=null,code='',sel=0,held=null,tk=0,nm='';
+const me=Math.random().toString(36).slice(2,8);
+const val=o=>Object.values(o);
+function err(t){$('er').textContent=t}
+function open_(){$('home').hidden=true;$('main').hidden=false}
+function conn(cb){
+ ch=sb.channel('sis-'+code,{config:{broadcast:{self:false}}});
+ ch.on('broadcast',{event:'s'},({payload})=>{if(!host){S=payload;ui()}});
+ ch.on('broadcast',{event:'a'},({payload})=>{if(host)hd(payload)});
+ ch.subscribe(s=>{if(s==='SUBSCRIBED')cb()});
+}
+function mk(){
+ nm=$('nm').value.trim()||'Hero';host=true;
+ code=Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.random()*32|0]).join('');
+ S={ph:'lobby',n:+$('np').value,pl:{},cr:[],tr:[],fx:[],win:'',msg:'',host:me,code};
+ conn(()=>{hd({t:'join',id:me,nm});open_()});
+}
+function jn(){
+ nm=$('nm').value.trim()||'Hero';code=$('cd').value.trim().toUpperCase();
+ if(code.length!=6)return err('Enter the 6-character code.');
+ conn(()=>{const t=setInterval(()=>{if(S){clearInterval(t);open_()}else tx('join',{nm})},800);tx('join',{nm});
+  setTimeout(()=>{if(!S)err('Lobby not found or already full.')},5000)});
+}
+function tx(t,o={}){o.t=t;o.id=me;host?hd(o):ch.send({type:'broadcast',event:'a',payload:o})}
+function bc(){ch.send({type:'broadcast',event:'s',payload:S});ui()}
+function ok(x,y,p){return x>=0&&y>=0&&x<W&&y<G&&!hm(x,y)&&!sf(x,y)&&!val(S.pl).some(q=>q!=p&&q.x==x&&q.y==y)}
+function add(id,nm){
+ const i=Object.keys(S.pl).length,a=S.n<=3?1:2;
+ S.pl[id]={id,nm,col:'',role:i<a?'A':'D',h:[],x:i<a?i:-1,y:i<a?G-1:-1,alive:1,hp:100,mhp:100,st:100,c:{}};
+}
+function hd(m){
+ let p=S.pl[m.id];
+ if(m.t=='join'){if(S.ph=='lobby'&&!p&&Object.keys(S.pl).length<S.n)add(m.id,(m.nm||'Hero').slice(0,12))}
+ else if(!p)return;
+ else if(S.ph=='lobby'){
+  if(m.t=='col'&&COL.includes(m.c)&&!val(S.pl).some(q=>q.col==m.c))p.col=m.c;
+  if(m.t=='pick'){const i=p.h.indexOf(m.i);
+   if(i>=0)p.h.splice(i,1);
+   else if(p.h.length<(p.role=='A'?3:2)&&!val(S.pl).some(q=>q.h.includes(m.i)))p.h.push(m.i)}
+  if(m.t=='pos'&&p.role=='D'&&ok(m.x,m.y,p)){p.x=m.x;p.y=m.y}
+  if(m.t=='go'&&m.id==S.host)start();
+ }else if(S.ph=='play'&&p.alive){
+  if(m.t=='mv')mv(p,m.d[0],m.d[1]);
+  if(m.t=='atk')atk(p);
+  if(m.t=='dg'&&!p.c.dd){p.c.dg=10;p.c.dd=50}
+  if(m.t=='df'&&!p.c.f){p.c.df=20;p.c.f=40}
+  if(m.t=='use'){if(p.x==0&&p.y==0)p.c.t=120;if(p.x==W-1&&p.y==G-1)p.c.e=120}
+ }
+ if(S.ph!='play')bc();
+}
+function start(){
+ const P=val(S.pl);
+ if(P.length<S.n||P.some(p=>!p.col||p.h.length<(p.role=='A'?3:2)||p.x<0)){S.msg='Waiting: all '+S.n+' players need a color, full hero picks, and defenders need a spawn tile.';return}
+ P.forEach(p=>{const s=[0,0,0,0,0];p.h.forEach(i=>H[i].s.forEach((v,k)=>s[k]+=v));
+  p.r=p.h.some(i=>H[i].r);p.mhp=100+s[4]*.6;p.hp=p.mhp;p.dm=5+(s[0]+s[1]+s[3])/30;
+  p.mv=Math.max(3,Math.round(8-s[2]/45));p.st=100;p.alive=1;p.steps=0;p.c={m:0,a:0,dd:0,f:0,dg:0,df:0,t:0,e:0}});
+ const free=()=>{let x,y;do{x=Math.random()*W|0;y=Math.random()*G|0}while(hm(x,y)||sf(x,y)||(x+y==0)||(x==0&&y==G-1)||P.some(p=>p.x==x&&p.y==y));return{x,y}};
+ S.cr=Array.from({length:5+(Math.random()*3|0)},()=>({...free(),a:1}));
+ S.tr=Array.from({length:6},free);S.fx=[];S.ph='play';S.msg='';
+}
+function mv(p,dx,dy){
+ if(p.c.m>0||(p.role=='A'&&p.st<=0))return;
+ const x=p.x+dx,y=p.y+dy;if(Math.abs(dx)+Math.abs(dy)!=1||x<0||y<0||x>=W||y>=G)return;
+ if(p.role=='D'&&(hm(x,y)||sf(x,y)))return;
+ if(val(S.pl).some(q=>q!=p&&q.alive&&q.x==x&&q.y==y))return;
+ p.x=x;p.y=y;p.c.m=p.mv;
+ if(p.role=='A'){
+  if(++p.steps%3==0)p.st=Math.max(0,p.st-1);
+  const t=S.tr.findIndex(t=>t.x==x&&t.y==y);if(t>=0){S.tr.splice(t,1);hurt(p,15)}
+  if(p.alive&&x==W-1&&y==0){S.ph='end';S.win='A'}
+ }
+}
+function hurt(p,d){
+ if(p.c.dg>0){p.c.dg=0;return}
+ if(p.c.df>0)d*=.4;
+ p.hp-=d;if(p.hp<=0){p.hp=0;p.alive=0}
+}
+function atk(p){
+ if(p.c.a>0)return;p.c.a=14;
+ const R=p.r?6:3;let best=null,bd=99;
+ for(const q of[...val(S.pl).filter(q=>q.alive&&q.role!=p.role),...S.cr.filter(c=>c.a)]){
+  const d=Math.max(Math.abs(q.x-p.x),Math.abs(q.y-p.y));if(d>R||d>=bd)continue;
+  if(q.role&&p.role=='D'&&(hm(q.x,q.y)||(sf(q.x,q.y)&&!p.r)))continue;
+  best=q;bd=d}
+ if(!best)return;
+ S.fx.push({a:[p.x,p.y],b:[best.x,best.y],c:p.col,t:4});
+ if(best.role)hurt(best,p.dm);
+ else{best.a=0;
+  if(p.role=='A')p.st=Math.min(100,p.st+.4);
+  else{p.mhp*=1.002;p.hp=Math.min(p.mhp,p.hp+p.mhp*.002);p.dm*=1.002}}
+}
+setInterval(()=>{
+ if(!host||!S||S.ph!='play')return;
+ const P=val(S.pl);
+ P.forEach(p=>{for(const k in p.c)if(p.c[k]>0)p.c[k]--});
+ S.fx=S.fx.filter(f=>--f.t>0);
+ const A=P.filter(p=>p.role=='A'),D=P.filter(p=>p.role=='D');
+ if(A.every(p=>!p.alive||p.st<=0)){S.ph='end';S.win='D'}
+ else if(D.every(p=>!p.alive)){S.ph='end';S.win='A'}
+ if(++tk%2==0||S.ph!='play')bc();
+},50);
+/* ---------- UI ---------- */
+function ui(){
+ if(!S)return;const mp=S.pl[me],lob=S.ph=='lobby';
+ $('lob').hidden=!lob;$('pad').hidden=lob;$('use').hidden=lob;$('bars').style.visibility=lob?'hidden':'visible';
+ if(lob)lobby(mp);
+ else{$('info').textContent=S.ph=='end'?(S.win=='A'?'💎 Attackers took the gem!':'🛡️ Defenders held the base!'):(mp&&mp.role=='A'?'Attacker: reach the gem':'Defender: guard the gem');
+  if(mp){$('hpb').style.width=mp.hp/mp.mhp*100+'%';$('stb').style.width=mp.st+'%'}}
+ draw();
+}
+function lobby(mp){
+ const a=S.n<=3?1:2,taken={};val(S.pl).forEach(q=>q.h.forEach(i=>taken[i]=q));
+ const h=H[sel],can=mp&&mp.h.length<(mp.role=='A'?3:2);
+ $('lob').innerHTML=`<div>Room code <b style="font-size:28px;color:var(--gold)">${S.code}</b> · ${S.n} players · ${a} attacker${a>1?'s':''}, ${S.n-a} defender${S.n-a>1?'s':''} · joined ${Object.keys(S.pl).length}/${S.n}</div>
+ ${val(S.pl).map(q=>`<div class="pl"><span class="dot" style="background:${q.col||'#444'}"></span>${q.nm} <small>${q.role=='A'?'⚔️ Attacker':'🛡️ Defender'}${q.id==me?' (you)':''}</small> — ${q.h.map(i=>H[i].n).join(', ')||'no heroes yet'}${q.role=='D'?(q.x>=0?' · spawn set':' · pick spawn on map'):''}</div>`).join('')}
+ <div id="cols" class="pl">Color: ${COL.map(c=>`<button style="background:${c}" ${val(S.pl).some(q=>q.col==c)?'disabled':''} onclick="tx('col',{c:'${c}'})" aria-label="color ${c}"></button>`).join('')}</div>
+ <div>Click a hero to see the card. Attackers pick 3, defenders pick 2. ${mp&&mp.role=='D'?'Defenders: click the map to choose your spawn.':''}</div>
+ <div id="hg">${H.map(x=>`<button onclick="sel=${x.i};ui()" style="${x.i==sel?'border-color:var(--gem)':''}">${taken[x.i]?`<span class="dot" style="background:${taken[x.i].col||'#888'};width:10px;height:10px"></span> `:''}${x.n}</button>`).join('')}</div>
+ <div class="card"><h3>${h.n}</h3><small>${h.u} · ${h.p}${h.r?' · Ranged (6 tiles)':''}</small>
+ ${ST.map((s,k)=>`<div class="row">${s}<i class="b"><b style="width:${h.s[k]}%"></b></i>${h.s[k]}</div>`).join('')}
+ <button onclick="tx('pick',{i:${h.i}})" ${taken[h.i]&&taken[h.i]!=mp||(!can&&!(mp&&mp.h.includes(h.i)))?'disabled':''}>${mp&&mp.h.includes(h.i)?'Drop hero':taken[h.i]?'Taken':'Pick hero'}</button></div>
+ ${me==S.host?`<button onclick="tx('go')">Start match</button>`:'<div>Waiting for the host to start…</div>'}<div style="color:#f87171">${S.msg||''}</div>`;
+}
+function draw(){
+ if(!S)return;const c=$('cv').getContext('2d'),mp=S.pl[me];
+ for(let x=0;x<W;x++)for(let y=0;y<G;y++){c.fillStyle=hm(x,y)?'#1e40af':sf(x,y)?'#854d0e':(x+y)%2?'#1c2340':'#161c36';c.fillRect(x*C,y*C,C,C)}
+ c.textAlign='center';c.textBaseline='middle';c.font='26px serif';
+ c.fillText('🌳',20,18);c.fillText('⭐',W*C-20,G*C-22);c.fillText('💎',W*C-20,20);
+ c.font='700 9px sans-serif';c.fillStyle='#fff';c.fillText('Hidden Trap',20,36);c.fillText('See Enemy',W*C-20,G*C-6);
+ c.fillText('ATTACKER HOME',140,G*C-6);c.fillText('GEM SAFE ZONE',W*C-100,6);
+ c.font='22px serif';
+ S.cr.forEach(r=>{if(r.a)c.fillText('👾',r.x*C+20,r.y*C+22)});
+ if(mp&&mp.c&&mp.c.t>0)S.tr.forEach(t=>c.fillText('🕳️',t.x*C+20,t.y*C+22));
+ S.fx.forEach(f=>{c.strokeStyle=f.c||'#fff';c.lineWidth=4;c.beginPath();c.moveTo(f.a[0]*C+20,f.a[1]*C+20);c.lineTo(f.b[0]*C+20,f.b[1]*C+20);c.stroke()});
+ val(S.pl).forEach(q=>{
+  if(q.x<0)return;
+  const vis=!mp||q.id==me||q.role==mp.role||(mp.c&&mp.c.e>0)||Math.max(Math.abs(q.x-mp.x),Math.abs(q.y-mp.y))<=6||S.ph!='play';
+  if(!vis)return;
+  const cx=q.x*C+20,cy=q.y*C+20;
+  c.globalAlpha=q.alive?1:.3;c.fillStyle=q.col||'#888';c.beginPath();c.arc(cx,cy,14,0,7);c.fill();
+  c.lineWidth=q.id==me?4:2;c.strokeStyle=q.role=='A'?'#f5c542':'#60a5fa';c.stroke();
+  c.fillStyle='#000';c.font='700 12px sans-serif';c.fillText(q.nm[0].toUpperCase(),cx,cy+1);
+  if(S.ph!='lobby'){c.fillStyle='#000a';c.fillRect(cx-14,cy-20,28,4);c.fillStyle='#ef4444';c.fillRect(cx-14,cy-20,28*q.hp/q.mhp,4)}
+  c.globalAlpha=1});
+}
+$('cv').onclick=e=>{if(!S||S.ph!='lobby')return;const r=$('cv').getBoundingClientRect();
+ tx('pos',{x:Math.floor((e.clientX-r.left)/r.width*W),y:Math.floor((e.clientY-r.top)/r.height*G)})};
+/* ---------- controls ---------- */
+const K={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]},KA={z:'atk',x:'dg',c:'df',e:'use'};
+addEventListener('keydown',e=>{if(e.target.tagName=='INPUT')return;const k=e.key.length>1?e.key:e.key.toLowerCase();
+ if(K[k]){held=K[k];e.preventDefault()}else if(KA[k]&&!e.repeat)tx(KA[k])});
+addEventListener('keyup',e=>{const k=e.key.length>1?e.key:e.key.toLowerCase();if(K[k]&&held==K[k])held=null});
+document.querySelectorAll('[data-d]').forEach(b=>{const d=b.dataset.d.split(',').map(Number);
+ b.onpointerdown=()=>held=d;b.onpointerup=b.onpointerleave=()=>{if(held===d)held=null}});
+document.querySelectorAll('[data-a]').forEach(b=>b.onpointerdown=()=>tx(b.dataset.a));
+$('use').onclick=()=>tx('use');
+setInterval(()=>{if(held&&S&&S.ph=='play')tx('mv',{d:held})},90);
+</script></body></html>
